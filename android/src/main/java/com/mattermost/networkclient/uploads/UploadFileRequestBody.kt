@@ -10,7 +10,7 @@ import java.io.IOException
 import java.net.URLConnection
 
 
-class UploadFileRequestBody(private val file: File, private val listener: ProgressListener) : RequestBody() {
+class UploadFileRequestBody(private val file: File, private val listener: ProgressListener, private val skipBytes: Long?) : RequestBody() {
 
     override fun contentLength(): Long {
         return file.length()
@@ -25,6 +25,8 @@ class UploadFileRequestBody(private val file: File, private val listener: Progre
         var source: Source? = null
         var total: Long = 0
         var read: Long
+        
+        if(skipBytes != null) sink.buffer.skip(skipBytes)
 
         try {
             source = file.source()

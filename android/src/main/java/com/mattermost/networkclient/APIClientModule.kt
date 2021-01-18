@@ -32,7 +32,7 @@ class APIClientModule(private val reactContext: ReactApplicationContext) : React
             sessionsClient[baseUrl]!!.parseOptions(options);
 
             // Return stringified client for success
-            promise.resolve( null)
+            promise.resolve(null)
         } catch (err: Throwable) {
             promise.reject(err)
         }
@@ -133,12 +133,15 @@ class APIClientModule(private val reactContext: ReactApplicationContext) : React
 
     @ReactMethod
     fun upload(baseUrl: String, endpoint: String?, fileUrl: String, taskId: String, options: ReadableMap, promise: Promise) {
+
+        val skipBytes = if (options.hasKey("skipBytes")) options.getInt("skipBytes").toLong() else null;
+
         try {
 
             val file = File(fileUrl);
             val body = MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
-                    .addPart(UploadFileRequestBody(file, ProgressListener(reactContext)))
+                    .addPart(UploadFileRequestBody(file, ProgressListener(reactContext), skipBytes))
                     .build()
             val request = sessionsRequest[baseUrl]!!.url("$baseUrl/$endpoint").post(body).parseOptions(options, sessionsClient[baseUrl]!!).build();
 
