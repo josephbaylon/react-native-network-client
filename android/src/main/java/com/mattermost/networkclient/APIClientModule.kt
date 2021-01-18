@@ -1,15 +1,21 @@
 package com.mattermost.networkclient
 
 import com.facebook.react.bridge.*
+import com.mattermost.networkclient.uploads.ProgressListener
+import com.mattermost.networkclient.uploads.UploadFileRequestBody
+import okhttp3.Call
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okio.IOException
+import java.io.File
 
-class APIClientModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
+class APIClientModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
     var sessionsClient = mutableMapOf<String, OkHttpClient.Builder>()
     var sessionsRequest = mutableMapOf<String, Request.Builder>()
+    var calls = mutableMapOf<String, Call>()
 
     override fun getName(): String {
         return "APIClient"
@@ -127,11 +133,32 @@ class APIClientModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
 
     @ReactMethod
     fun upload(baseUrl: String, endpoint: String?, fileUrl: String, taskId: String, options: ReadableMap, promise: Promise) {
+        try {
 
+            val file = File(fileUrl);
+            val body = MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addPart(UploadFileRequestBody(file, ProgressListener(reactContext)))
+                    .build()
+            val request = sessionsRequest[baseUrl]!!.url("$baseUrl/$endpoint").post(body).parseOptions(options, sessionsClient[baseUrl]!!).build();
+
+            calls[taskId] = sessionsClient[baseUrl]!!.build().newCall(request)
+            calls[taskId]!!.execute().use { response ->
+                response.promiseResolution(promise)
+            }
+
+        } catch (e: IOException) {
+            promise.reject(e)
+        }
     }
 
     @ReactMethod
-    fun cancelRequest(taskId: String) {
-
+    fun cancelRequest(taskId: String, promise: Promise) {
+        try {
+            calls[taskId]!!.cancel()
+            promise.resolve(null)
+        } catch (e: IOException) {
+            promise.reject(e)
+        }
     }
 }

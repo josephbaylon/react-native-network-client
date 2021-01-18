@@ -12,6 +12,7 @@ type RequestOptions = {
 
 type UploadRequestOptions = RequestOptions & {
     skipBytes?: number;
+    onUploadProgress?(progress: number): void;
 };
 
 type ClientResponse = {

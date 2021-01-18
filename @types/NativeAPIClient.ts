@@ -31,8 +31,10 @@ interface NativeAPIClient {
         baseUrl: string,
         endpoint: string | null,
         fileUrl: string,
+        taskId: string,
         options?: UploadRequestOptions
     ): Promise<ClientResponse>;
+    cancelRequest(taskId: string): Promise<void>;
 
     createClientFor(
         baseUrl: string,
@@ -50,4 +52,7 @@ interface NativeAPIClient {
     ): Promise<void>;
     disconnectWebSocketFor(wsUrl: string): Promise<void>;
     invalidateWebSocketClientFor(baseUrl: string): Promise<void>;
+
+    addListener: (eventType: string) => void;
+    removeListeners: (count: number) => void;
 }

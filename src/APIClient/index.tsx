@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import { NativeModules } from "react-native";
+import { NativeEventEmitter, NativeModules } from "react-native";
 import isURL from "validator/es/lib/isURL";
 
 const { APIClient: NativeAPIClient } = NativeModules;
@@ -77,8 +77,31 @@ class APIClient implements APIClientInterface {
         endpoint: string,
         fileUrl: string,
         options?: UploadRequestOptions
-    ): Promise<ClientResponse> =>
-        NativeAPIClient.upload(this.baseUrl, endpoint, fileUrl, options);
+    ): Promise<ClientResponse> => {
+        // Listen for Upload Progress for callback
+        const UploadEvent = new NativeEventEmitter(NativeModules.APIClient);
+        UploadEvent.addListener("NativeClient-UploadProgress", (event) => {
+            if (options && options.onUploadProgress) {
+                options.onUploadProgress(event.progress);
+            }
+        });
+
+        // Random Task ID
+        const generateUploadTaskId = () =>
+            Math.random().toString(36).slice(-10) +
+            Math.random().toString(36).slice(-10);
+
+        // Upload!
+        return NativeAPIClient.upload(
+            this.baseUrl,
+            endpoint,
+            fileUrl,
+            generateUploadTaskId(),
+            options
+        );
+    };
+    cancelRequest = (taskId: string): Promise<void> =>
+        NativeAPIClient.cancelRequest(taskId);
 }
 
 async function getOrCreateAPIClient(
